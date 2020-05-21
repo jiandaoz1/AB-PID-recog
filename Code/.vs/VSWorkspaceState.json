@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\ctpn\\nets",
+    "\\ctpn\\utils",
+    "\\ctpn\\utils\\text_connector",
+    "\\preprocess",
+    "\\tesseract"
+  ],
+  "PreviewInSolutionExplorer": false
+}
