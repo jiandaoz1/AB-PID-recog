@@ -1,2 +1,4 @@
-Code/ctpn/data
-preprocess/data
+Code/ctpn/data/*
+preprocess/data/*
+Checkpoints_ctpn/*
+Data/*
