@@ -1,0 +1,15 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\main",
+    "\\nets",
+    "\\utils",
+    "\\utils\\bbox",
+    "\\utils\\dataset",
+    "\\utils\\prepare",
+    "\\utils\\rpn_msr",
+    "\\utils\\text_connector"
+  ],
+  "SelectedNode": "\\main\\tessact_recog.py",
+  "PreviewInSolutionExplorer": false
+}

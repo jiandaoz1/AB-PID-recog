@@ -9,23 +9,29 @@ import numpy as np
 import tensorflow as tf
 
 cwd = os.getcwd()
+cwd="D:\Abyss_Project\Code"
 sys.path.append(cwd)
 os.chdir(cwd) 
 print(os.getcwd())
 
 from preprocess.preprocess import remove_border
 from preprocess.preprocess import get_images
+from tesseract.tessact_recog import text_read
 from ctpn.nets import model_train as model
 from ctpn.utils.rpn_msr.proposal_layer import proposal_layer
 from ctpn.utils.text_connector.detectors import TextDetector
 
-tf.app.flags.DEFINE_string('test_data_path', '../data/demo-pid-red', '')
+tf.app.flags.DEFINE_string('test_data_path', '../Data/demo-pid-red', '')
 tf.app.flags.DEFINE_string('preprocess_output_path', 'preprocess/data/res', '')
-tf.app.flags.DEFINE_string('ctpn_input_path', 'preprocess/data/res2', '')
+tf.app.flags.DEFINE_string('ctpn_input_path', 'preprocess/data/res', '')
 tf.app.flags.DEFINE_string('ctpn_output_path', 'ctpn/data/res', '')
-tf.app.flags.DEFINE_string('output_path', '../data/res/', '')
+tf.app.flags.DEFINE_string('tessact_input_path', 'ctpn/data/res', '')
+tf.app.flags.DEFINE_string('tessact_output_path', 'tesseract/data/res', '')
+
+
+tf.app.flags.DEFINE_string('output_path', '../Data/res/', '')
 tf.app.flags.DEFINE_string('gpu', '0', '')
-tf.app.flags.DEFINE_string('checkpoint_path', '../checkpoints_ctpn/', '')
+tf.app.flags.DEFINE_string('checkpoint_path', '../Checkpoints_ctpn/', '')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -35,17 +41,16 @@ def resize_image(img):
     im_size_min = np.min(img_size[0:2])
     im_size_max = np.max(img_size[0:2])
 
-    im_scale = float(600) / float(im_size_min)
-    if np.round(im_scale * im_size_max) > 1200:
-        im_scale = float(1200) / float(im_size_max)
-    #no scale is needed
-    im_scale = 0.5
+    im_scale = float(2400) / float(im_size_min)
+    print("scale factor = "+str(im_scale))
+    if np.round(im_scale * im_size_max) > 3600:
+        im_scale = float(2400) / float(im_size_max)
     new_h = int(img_size[0] * im_scale)
     new_w = int(img_size[1] * im_scale)
    
     new_h = new_h if new_h // 16 == 0 else (new_h // 16 + 1) * 16
     new_w = new_w if new_w // 16 == 0 else (new_w // 16 + 1) * 16
-    re_im = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+    re_im = cv2.resize(img, (new_w, new_h), interpolation=cv2.cv2.INTER_CUBIC)
     return re_im, (new_h / img_size[0], new_w / img_size[1])
 
 
@@ -79,56 +84,63 @@ def ctpn():
                 print(im_fn)
                 start = time.time()
                 try:
-                    im = cv2.imread(im_fn)[:, :, ::-1]
+                    img_raw = cv2.imread(im_fn)
                 except:
                     print("Error reading image {}!".format(im_fn))
                     continue
+                img_draw = img_raw.copy()
 
-                im, (rh, rw) = resize_image(im)
-                h, w, c = im.shape
-                print(h,w,c)
-                img = im
-                for im_rot in ['orig','rot90']:
-                    if im_rot == 'rot90':
-                        img = cv2.transpose(img)
-                        img = cv2.flip(img,1)
+                img, (rh, rw) = resize_image(img_raw)
+                # image used to draw bounding box
+
+                h, w, c = img.shape
+                for ifrot in ['orig','rot']:
+                    im = img.copy()
+
+                    if ifrot == 'rot':
+                        im = cv2.transpose(im)
+                        im = cv2.flip(im,1)
                         bbox_color = (255,0,0)
                         im_info = np.array([w, h, c]).reshape([1, 3])
                     else: 
                         bbox_color = (0,255,0)
                         im_info = np.array([h, w, c]).reshape([1, 3])
                     bbox_pred_val, cls_prob_val = sess.run([bbox_pred, cls_prob],
-                                                           feed_dict={input_image: [img],
+                                                           feed_dict={input_image: [im],
                                                                       input_im_info: im_info})
     
                     textsegs, _ = proposal_layer(cls_prob_val, bbox_pred_val, im_info)
                     scores = textsegs[:, 0]
                     textsegs = textsegs[:, 1:5]
-
+                    
                     textdetector = TextDetector(DETECT_MODE='H')
-                    boxes = textdetector.detect(textsegs, scores[:, np.newaxis], img.shape[:2])
+                    boxes = textdetector.detect(textsegs, scores[:, np.newaxis], im.shape[:2])
                     boxes = np.array(boxes, dtype=np.int)
-
+                    print(len(boxes))
                     cost_time = (time.time() - start)
                     print("cost time: {:.2f}s".format(cost_time))
-
+                    fx=1.0 / rw
+                    fy=1.0 / rh
                     for i, box in enumerate(boxes):
-                        if im_rot == 'rot90':
+                        if ifrot == 'rot':
                             box = np.array([box[3],h-box[2],box[5],h-box[4],box[7],h-box[6],box[1],h-box[0],box[8]])
-    
-                        cv2.polylines(im, [box[:8].astype(np.int32).reshape((-1, 1, 2))], True, color=bbox_color,
-                                      thickness=2)
+                        #resize the images
+                        box[:8:2] = (box[:8:2]*fx).astype(np.int32)
+                        box[1::2] = (box[1::2]*fy).astype(np.int32)
+                        
+                        cv2.polylines(img_draw, [box[:8].astype(np.int32).reshape((-1, 1, 2))], True, color=bbox_color, thickness=2)
                         # crop image with rectangle box and save
-                        im_crop = im[x0:x0+w0, y0:y0+h0]
-                        #cv2.imwrite(os.path.join(FLAGS.ctpn_output_path, im_rot+"-"+str(i)+"-"+os.path.basename(im_fn)), im[x0:x0+w0, y0:y0+h0])
+                        x0,y0,w0,h0 = cv2.boundingRect(box[:8].astype(np.int32).reshape((-1, 2)))
+                        img_crop = img_raw[y0:y0+h0,x0:x0+w0].copy()
 
-                    
+                        cv2.imwrite(os.path.join(FLAGS.ctpn_output_path, ifrot+str(format(i, "04"))+"-"+os.path.basename(im_fn)), img_crop) 
+                        cv2.putText(img_draw, str(i), (box[0],box[1]), cv2.FONT_HERSHEY_SIMPLEX ,1.0, bbox_color, 2, cv2.LINE_AA) 
+   
                     #im = cv2.resize(img, None, None, fx=1.0 / rh, fy=1.0 / rw, interpolation=cv2.INTER_LINEAR)
-                    cv2.imwrite(os.path.join(FLAGS.ctpn_output_path, im_rot+"-"+os.path.basename(im_fn)),im[:, :, ::-1])
+                    cv2.imwrite(os.path.join(FLAGS.ctpn_output_path, ifrot+"-"+os.path.basename(im_fn)),img_draw[:, :, ::-1])
 
-                    with open(os.path.join(FLAGS.ctpn_output_path, os.path.splitext(os.path.basename(im_fn))[0]) + ".txt",
+                    with open(os.path.join(FLAGS.ctpn_output_path, ifrot+"-"+os.path.splitext(os.path.basename(im_fn))[0]) + ".txt",
                                 "a") as f:
-                        f.writelines("\n")
                         for i, box in enumerate(boxes):
                             line = ",".join(str(box[k]) for k in range(8))
                             line += "," + str(scores[i]) + "\r\n"
@@ -136,8 +148,9 @@ def ctpn():
                         f.close()
 
 def main(argv=None):
-    remove_border(FLAGS.test_data_path,FLAGS.preprocess_output_path)
+    #remove_border(FLAGS.test_data_path,FLAGS.preprocess_output_path)
     #ctpn()
+    text_read(FLAGS.tessact_input_path,FLAGS.tessact_output_path)
 
 
 if __name__ == '__main__':

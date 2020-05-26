@@ -1,4 +1,5 @@
 Code/ctpn/data/*
-preprocess/data/*
+Code/preprocess/data/*
 Checkpoints_ctpn/*
 Data/*
+Code/tesseract/data/*

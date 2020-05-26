@@ -49,6 +49,7 @@ def remove_border(input_path, output_path):
            area .append(cv2.contourArea(cnt))
         # sort by contour area
         top_cnt_area = np.argsort(-1*np.array(area))
+        # drawing has not been pre-processed
         # select the thrid largest contour which fit the drawing broader
         ind = top_cnt_area[2]
         approx = cv2.approxPolyDP(contours[ind],epsilon*cv2.arcLength(contours[ind],True),True)
