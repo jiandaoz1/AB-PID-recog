@@ -21,7 +21,7 @@ def text_read(input_path,output_path):
             cropimg = cv2.imread(input_path+"/ocr.png")
             cropimg = cv2.resize(cropimg, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
             retval, threshold = cv2.threshold(cropimg,127,255,cv2.THRESH_BINARY)
-            text = pytesseract.image_to_string(threshold,lang='eng', config='--psm 6 --oem 3 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-/\\"')
+            text = pytesseract.image_to_string(threshold,lang='eng', config='--psm 6 --oem 2 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-/\\"')
 
 
 

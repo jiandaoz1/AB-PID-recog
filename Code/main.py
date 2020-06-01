@@ -16,10 +16,12 @@ print(os.getcwd())
 
 from preprocess.preprocess import remove_border
 from preprocess.preprocess import get_images
+from preprocess.preprocess import resize_image
 from tesseract.tessact_recog import text_read
 from ctpn.nets import model_train as model
 from ctpn.utils.rpn_msr.proposal_layer import proposal_layer
 from ctpn.utils.text_connector.detectors import TextDetector
+from linedetect.linedetect import houghline
 
 tf.app.flags.DEFINE_string('test_data_path', '../Data/demo-pid-red', '')
 tf.app.flags.DEFINE_string('preprocess_output_path', 'preprocess/data/res', '')
@@ -27,31 +29,13 @@ tf.app.flags.DEFINE_string('ctpn_input_path', 'preprocess/data/res', '')
 tf.app.flags.DEFINE_string('ctpn_output_path', 'ctpn/data/res', '')
 tf.app.flags.DEFINE_string('tessact_input_path', 'ctpn/data/res', '')
 tf.app.flags.DEFINE_string('tessact_output_path', 'tesseract/data/res', '')
-
+tf.app.flags.DEFINE_string('linedetect_input_path', 'preprocess/data/res', '')
+tf.app.flags.DEFINE_string('linedetect_output_path', 'linedetect/data/res', '')
 
 tf.app.flags.DEFINE_string('output_path', '../Data/res/', '')
 tf.app.flags.DEFINE_string('gpu', '0', '')
 tf.app.flags.DEFINE_string('checkpoint_path', '../Checkpoints_ctpn/', '')
 FLAGS = tf.app.flags.FLAGS
-
-
-
-def resize_image(img):
-    img_size = img.shape
-    im_size_min = np.min(img_size[0:2])
-    im_size_max = np.max(img_size[0:2])
-
-    im_scale = float(2400) / float(im_size_min)
-    print("scale factor = "+str(im_scale))
-    if np.round(im_scale * im_size_max) > 3600:
-        im_scale = float(2400) / float(im_size_max)
-    new_h = int(img_size[0] * im_scale)
-    new_w = int(img_size[1] * im_scale)
-   
-    new_h = new_h if new_h // 16 == 0 else (new_h // 16 + 1) * 16
-    new_w = new_w if new_w // 16 == 0 else (new_w // 16 + 1) * 16
-    re_im = cv2.resize(img, (new_w, new_h), interpolation=cv2.cv2.INTER_CUBIC)
-    return re_im, (new_h / img_size[0], new_w / img_size[1])
 
 
 
@@ -85,6 +69,15 @@ def ctpn():
                 start = time.time()
                 try:
                     img_raw = cv2.imread(im_fn)
+                    #(thresh, img_raw) = cv2.threshold(img_raw, 127, 255, cv2.THRESH_BINARY)
+                    # Create kernel
+                    #kernel = np.array([[-1, -1, -1], 
+                    #                   [-1, 9,-1], 
+                    #                   [-1, -1, -1]])
+
+                    # Sharpen image
+                    #img_raw = cv2.filter2D(img_raw, -1, kernel)
+ 
                 except:
                     print("Error reading image {}!".format(im_fn))
                     continue
@@ -150,7 +143,8 @@ def ctpn():
 def main(argv=None):
     #remove_border(FLAGS.test_data_path,FLAGS.preprocess_output_path)
     #ctpn()
-    text_read(FLAGS.tessact_input_path,FLAGS.tessact_output_path)
+    #text_read(FLAGS.tessact_input_path,FLAGS.tessact_output_path)
+    houghline(FLAGS.linedetect_input_path, FLAGS.linedetect_output_path)
 
 
 if __name__ == '__main__':

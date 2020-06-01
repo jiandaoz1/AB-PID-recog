@@ -23,6 +23,22 @@ def get_images(input_path):
     print('Find {} images'.format(len(files)))
     return files
 
+def resize_image(img):
+    img_size = img.shape
+    im_size_min = np.min(img_size[0:2])
+    im_size_max = np.max(img_size[0:2])
+
+    im_scale = float(2400) / float(im_size_min)
+    print("scale factor = "+str(im_scale))
+    if np.round(im_scale * im_size_max) > 3600:
+        im_scale = float(2400) / float(im_size_max)
+    new_h = int(img_size[0] * im_scale)
+    new_w = int(img_size[1] * im_scale)
+   
+    new_h = new_h if new_h // 16 == 0 else (new_h // 16 + 1) * 16
+    new_w = new_w if new_w // 16 == 0 else (new_w // 16 + 1) * 16
+    re_im = cv2.resize(img, (new_w, new_h), interpolation=cv2.cv2.INTER_CUBIC)
+    return re_im, (new_h / img_size[0], new_w / img_size[1])
 
 def remove_border(input_path, output_path):
     """remove P&ID drawing broder
@@ -62,7 +78,7 @@ def remove_border(input_path, output_path):
         #edges = cv2.Canny(im_grey,50,150,apertureSize = 3)
         minLineLength = 10
         maxLineGap = 50
-        lines = cv2.HoughLines(im_grey,1,np.pi/180,100,minLineLength,maxLineGap)
+        lines = cv2.HoughLinesP(im_grey,1,np.pi/180,100,minLineLength,maxLineGap)
         for iln in range(len(lines)):
             for x1,y1,x2,y2 in lines[iln]:
                 print(x1,y1,x2,y2)
