@@ -21,7 +21,7 @@ from tesseract.tessact_recog import text_read
 from ctpn.nets import model_train as model
 from ctpn.utils.rpn_msr.proposal_layer import proposal_layer
 from ctpn.utils.text_connector.detectors import TextDetector
-from linedetect.linedetect import houghline
+from linedetect.linedetect import houghline, inoutlet_detect
 
 tf.app.flags.DEFINE_string('test_data_path', '../Data/demo-pid-red', '')
 tf.app.flags.DEFINE_string('preprocess_output_path', 'preprocess/data/res', '')
@@ -29,8 +29,10 @@ tf.app.flags.DEFINE_string('ctpn_input_path', 'preprocess/data/res', '')
 tf.app.flags.DEFINE_string('ctpn_output_path', 'ctpn/data/res', '')
 tf.app.flags.DEFINE_string('tessact_input_path', 'ctpn/data/res', '')
 tf.app.flags.DEFINE_string('tessact_output_path', 'tesseract/data/res', '')
-tf.app.flags.DEFINE_string('linedetect_input_path', 'preprocess/data/res', '')
-tf.app.flags.DEFINE_string('linedetect_output_path', 'linedetect/data/res', '')
+tf.app.flags.DEFINE_string('pipedetect_input_path', 'preprocess/data/res', '')
+tf.app.flags.DEFINE_string('pipedetect_output_path', 'linedetect/data/res_pipe', '')
+tf.app.flags.DEFINE_string('inoutletdetect_input_path', 'preprocess/data/res', '')
+tf.app.flags.DEFINE_string('inoutletdetect_output_path', 'linedetect/data/res_inoutlet', '')
 
 tf.app.flags.DEFINE_string('output_path', '../Data/res/', '')
 tf.app.flags.DEFINE_string('gpu', '0', '')
@@ -141,11 +143,12 @@ def ctpn():
                         f.close()
 
 def main(argv=None):
-    #remove_border(FLAGS.test_data_path,FLAGS.preprocess_output_path)
-    #ctpn()
-    #text_read(FLAGS.tessact_input_path,FLAGS.tessact_output_path)
-    houghline(FLAGS.linedetect_input_path, FLAGS.linedetect_output_path)
-
+    remove_border(FLAGS.test_data_path,FLAGS.preprocess_output_path)
+    ctpn()
+    text_read(FLAGS.tessact_input_path,FLAGS.tessact_output_path)
+    mask_text()
+    houghline(FLAGS.pipedetect_input_path, FLAGS.pipedetect_output_path)
+    inoutlet_detect(FLAGS.inoutletdetect_input_path, FLAGS.inoutletdetect_output_path,num_of_vertices = 5)
 
 if __name__ == '__main__':
     tf.app.run()

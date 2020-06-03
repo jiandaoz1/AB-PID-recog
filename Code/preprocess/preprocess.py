@@ -51,13 +51,13 @@ def remove_border(input_path, output_path):
         print(im_fn)
         start = time.time()
         try:
-            im_grey = cv2.imread(im_fn,cv2.IMREAD_GRAYSCALE)
+            im_gray = cv2.imread(im_fn,cv2.IMREAD_GRAYSCALE)
         except:
             print("Error reading image {}!".format(im_fn))
             continue
-        h, w = im_grey.shape[:2]
-        im_blank =  np.zeros(shape=[h, w], dtype=np.uint8)
-        im_binary = cv2.threshold(im_grey, 128, 255, cv2.THRESH_BINARY)[1]
+        h, w = im_gray.shape[:2]
+        im_blank =  np.ones(shape=[h, w], dtype=np.uint8)*255
+        im_binary = cv2.threshold(im_gray, 128, 255, cv2.THRESH_BINARY)[1]
         _, contours, _ = cv2.findContours(im_binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
         area = []
         for cnt in contours:
@@ -69,20 +69,8 @@ def remove_border(input_path, output_path):
         # select the thrid largest contour which fit the drawing broader
         ind = top_cnt_area[2]
         approx = cv2.approxPolyDP(contours[ind],epsilon*cv2.arcLength(contours[ind],True),True)
-        cv2.drawContours(im_blank, [approx], 0, (255), thickness = -1, lineType=8)
+        cv2.drawContours(im_blank, [approx], 0, (0), thickness = -1, lineType=8)
         # combine image with masks
-        im_grey = cv2.bitwise_and(im_blank, im_grey)
-        
-        """
-        #edge detection of the line
-        #edges = cv2.Canny(im_grey,50,150,apertureSize = 3)
-        minLineLength = 10
-        maxLineGap = 50
-        lines = cv2.HoughLinesP(im_grey,1,np.pi/180,100,minLineLength,maxLineGap)
-        for iln in range(len(lines)):
-            for x1,y1,x2,y2 in lines[iln]:
-                print(x1,y1,x2,y2)
-                cv2.line(im_grey,(x1,y1),(x2,y2),(100),15)
-        """
-        cv2.imwrite(os.path.join(output_path, os.path.basename(im_fn)), im_grey)
+        im_gray = cv2.bitwise_or(im_blank, im_gray)
+        cv2.imwrite(os.path.join(output_path, os.path.basename(im_fn)), im_gray)
         
