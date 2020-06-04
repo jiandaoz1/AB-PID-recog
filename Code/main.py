@@ -9,7 +9,8 @@ import numpy as np
 import tensorflow as tf
 
 cwd = os.getcwd()
-cwd="D:\Abyss_Project\Code"
+# cwd="D:\Abyss_Project\Code"
+cwd = os.getcwd()
 sys.path.append(cwd)
 os.chdir(cwd) 
 print(os.getcwd())
