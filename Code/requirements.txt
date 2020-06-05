@@ -9,3 +9,5 @@ pytesseract==0.3.4
 ipython==7.14.0
 Pillow==7.1.2
 pytesseract
+cython
+scikit-image
