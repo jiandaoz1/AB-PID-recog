@@ -72,5 +72,6 @@ def remove_border(input_path, output_path):
         cv2.drawContours(im_blank, [approx], 0, (0), thickness = -1, lineType=8)
         # combine image with masks
         im_gray = cv2.bitwise_or(im_blank, im_gray)
-        cv2.imwrite(os.path.join(output_path, os.path.basename(im_fn)), im_gray)
+        if not cv2.imwrite(os.path.join(output_path, os.path.basename(im_fn)), im_gray):
+            print("WARNING: Error preprocessing image. Couldn't write. Continuing....")
         
