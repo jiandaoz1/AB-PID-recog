@@ -3,4 +3,4 @@ Code/preprocess/data/*
 Checkpoints_ctpn/*
 Data/*
 Code/tesseract/data/*
-Code/linedetect/data/*
+Code/lineshapedetect/data/*

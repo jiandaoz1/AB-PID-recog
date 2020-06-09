@@ -2,10 +2,9 @@ tqdm==4.11.2
 Cython==0.24.1
 matplotlib==3.2.1
 numpy==1.16.4
-opencv_python==3.4.0.12
+opencv_python==3.4.6.27
 tensorflow_gpu==1.14.0
 Shapely==1.7.0
 pytesseract==0.3.4
 ipython==7.14.0
 Pillow==7.1.2
-tensorflow==2.2.0

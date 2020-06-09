@@ -14,25 +14,44 @@ sys.path.append(cwd)
 os.chdir(cwd) 
 print(os.getcwd())
 
-from preprocess.preprocess import remove_border
+from preprocess.preprocess import remove_border, skeleton,thinning
 from preprocess.preprocess import get_images
 from preprocess.preprocess import resize_image
 from tesseract.tessact_recog import text_read
 from ctpn.nets import model_train as model
 from ctpn.utils.rpn_msr.proposal_layer import proposal_layer
 from ctpn.utils.text_connector.detectors import TextDetector
-from linedetect.linedetect import houghline, inoutlet_detect
+from lineshapedetect.lineshapedetect import houghline_detect, inoutlet_detect,square_detect,circle_detect
 
 tf.app.flags.DEFINE_string('test_data_path', '../Data/demo-pid-red', '')
-tf.app.flags.DEFINE_string('preprocess_output_path', 'preprocess/data/res', '')
-tf.app.flags.DEFINE_string('ctpn_input_path', 'preprocess/data/res', '')
+tf.app.flags.DEFINE_string('removeborder_output_path', 'preprocess/data/res_border', '')
+
+tf.app.flags.DEFINE_string('morpho_input_path', 'preprocess/data/res_border', '')
+tf.app.flags.DEFINE_string('morpho_output_path', 'preprocess/data/res_morpho', '')
+
+tf.app.flags.DEFINE_string('inoutletdetect_input_path', 'preprocess/data/res_border', '')
+tf.app.flags.DEFINE_string('inoutletdetect_output_path', 'lineshapedetect/data/res_inoutlet', '')
+
+tf.app.flags.DEFINE_string('squaredetect_input_path', 'preprocess/data/res_border', '')
+tf.app.flags.DEFINE_string('squaredetect_output_path', 'lineshapedetect/data/res_square', '')
+
+tf.app.flags.DEFINE_string('circledetect_input_path', 'preprocess/data/res_border', '')
+tf.app.flags.DEFINE_string('circledetect_output_path', 'lineshapedetect/data/res_circle', '')
+
+tf.app.flags.DEFINE_string('ctpn_input_path', 'preprocess/data/res_morpho', '')
 tf.app.flags.DEFINE_string('ctpn_output_path', 'ctpn/data/res', '')
+
 tf.app.flags.DEFINE_string('tessact_input_path', 'ctpn/data/res', '')
 tf.app.flags.DEFINE_string('tessact_output_path', 'tesseract/data/res', '')
-tf.app.flags.DEFINE_string('pipedetect_input_path', 'preprocess/data/res', '')
-tf.app.flags.DEFINE_string('pipedetect_output_path', 'linedetect/data/res_pipe', '')
-tf.app.flags.DEFINE_string('inoutletdetect_input_path', 'preprocess/data/res', '')
-tf.app.flags.DEFINE_string('inoutletdetect_output_path', 'linedetect/data/res_inoutlet', '')
+
+#tf.app.flags.DEFINE_string('shapemask_input_path', 'preprocess/data/res', '')
+#tf.app.flags.DEFINE_string('shapemask_output_path', 'textshapemask/data/res_shape', '')
+
+
+tf.app.flags.DEFINE_string('pipedetect_input_path', 'preprocess/data/res_morpho', '')
+tf.app.flags.DEFINE_string('pipedetect_output_path', 'lineshapedetect/data/res_pipe', '')
+
+
 
 tf.app.flags.DEFINE_string('output_path', '../Data/res/', '')
 tf.app.flags.DEFINE_string('gpu', '0', '')
@@ -71,23 +90,13 @@ def ctpn():
                 start = time.time()
                 try:
                     img_raw = cv2.imread(im_fn)
-                    #(thresh, img_raw) = cv2.threshold(img_raw, 127, 255, cv2.THRESH_BINARY)
-                    # Create kernel
-                    #kernel = np.array([[-1, -1, -1], 
-                    #                   [-1, 9,-1], 
-                    #                   [-1, -1, -1]])
-
-                    # Sharpen image
-                    #img_raw = cv2.filter2D(img_raw, -1, kernel)
- 
                 except:
                     print("Error reading image {}!".format(im_fn))
                     continue
+                # image used to draw bounding box
                 img_draw = img_raw.copy()
 
                 img, (rh, rw) = resize_image(img_raw)
-                # image used to draw bounding box
-
                 h, w, c = img.shape
                 for ifrot in ['orig','rot']:
                     im = img.copy()
@@ -142,13 +151,22 @@ def ctpn():
                             f.writelines(line)
                         f.close()
 
+
+
+
 def main(argv=None):
-    remove_border(FLAGS.test_data_path,FLAGS.preprocess_output_path)
-    ctpn()
-    text_read(FLAGS.tessact_input_path,FLAGS.tessact_output_path)
-    mask_text()
-    houghline(FLAGS.pipedetect_input_path, FLAGS.pipedetect_output_path)
-    inoutlet_detect(FLAGS.inoutletdetect_input_path, FLAGS.inoutletdetect_output_path,num_of_vertices = 5)
+    #remove_border(FLAGS.test_data_path,FLAGS.removeborder_output_path)
+    #skeleton(FLAGS.morpho_input_path,FLAGS.morpho_output_path)
+    inoutlet_detect(FLAGS.inoutletdetect_input_path, FLAGS.inoutletdetect_output_path, mask = False)
+    circle_detect(FLAGS.circledetect_input_path, FLAGS.circledetect_output_path, mask = False)
+    square_detect(FLAGS.squaredetect_input_path, FLAGS.squaredetect_output_path)
+    houghline_detect(FLAGS.pipedetect_input_path, FLAGS.pipedetect_output_path)
+    #ctpn()
+    #text_read(FLAGS.tessact_input_path,FLAGS.tessact_output_path)
+    #shape_mask(FLAGS.shapemask_input_path,FLAGS.shapemask_output_path)
+    #inoutlet_detect(FLAGS.inoutletdetect_input_path, FLAGS.inoutletdetect_output_path)
+    
+    
 
 if __name__ == '__main__':
     tf.app.run()
