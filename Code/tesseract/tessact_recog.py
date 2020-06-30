@@ -14,8 +14,9 @@ def text_read(input_path,output_path):
     os.makedirs(output_path)
     print(input_path)
     for ifrot in ['orig','rot']:
-        cropimg_fn_list = glob(input_path+"/"+ifrot+('[0-9]' * 4)+"*")
+        cropimg_fn_list = glob(input_path+"/*"+ifrot+"_"+('[0-9]' * 4)+"*")
         for cropimg_fn in cropimg_fn_list:
+            print(cropimg_fn)
             cropimg = Image.open(cropimg_fn)
             cropimg.save(input_path+"/ocr.png", dpi=(300, 300))
             cropimg = cv2.imread(input_path+"/ocr.png")

@@ -4,3 +4,6 @@ Checkpoints_ctpn/*
 Data/*
 Code/tesseract/data/*
 Code/lineshapedetect/data/*
+*.jpg
+*.jpeg
+*.png
