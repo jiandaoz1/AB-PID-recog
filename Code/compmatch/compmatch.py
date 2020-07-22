@@ -1,20 +1,150 @@
 import cv2
 import os
+import shutil
 import numpy as np
-
+from preprocess.preprocess import get_images
 from matplotlib import pyplot as plt
+from utils.utils import  txtremove
+import imutils
 
-MIN_MATCH_COUNT = 3
+
+
+
+def compmatch(input_path,template_path, output_path,comploc_output_path):
+
+    """
+    Component Match by using template matching
+    """
+
+    print("========== Component Match ==============")
+    if os.path.exists(output_path):
+        shutil.rmtree(output_path)
+    os.makedirs(output_path)
+    img_fn_list = get_images(input_path)
+    tar_fn_list = get_images(template_path)
+    threshold = 0.8
+    for img_fn in img_fn_list:
+        print(img_fn)
+
+        txtfileloc = os.path.join (comploc_output_path, os.path.splitext(os.path.basename(img_fn))[0]) + "_loc.txt" 
+
+        img_gray = cv2.imread(img_fn, cv2.IMREAD_GRAYSCALE)
+        h,w = img_gray.shape
+        img_blank =  np.ones(shape=[h, w], dtype=np.uint8)*255
+        for tar_fn in tar_fn_list:
+            tar_list = []
+            if os.path.isfile(txtfileloc):
+                f =  open(txtfileloc, 'r+')
+                tar_name = os.path.splitext(os.path.basename(tar_fn))[0]
+                textlines = txtremove(f,[tar_name])
+                f.seek(0)
+                f.write(textlines)
+                f.truncate()
+                f.close() 
+            tar_gray = cv2.imread(tar_fn, cv2.IMREAD_GRAYSCALE)
+            #tar_binary = cv2.threshold(tar_gray, 128, 255, cv2.THRESH_BINARY)[1]
+            tar_list.append(tar_gray )
+            tar_new = cv2.flip(tar_gray ,1)
+            tar_list.append(tar_new)
+            tar_new = cv2.transpose(tar_gray)
+            tar_list.append(tar_new)
+            tar_new = cv2.flip(tar_new,-1)
+            tar_list.append(tar_new)
+            for tar in tar_list:
+                # loop over the scales of the image
+                w, h = tar.shape[::-1]
+                found =  None
+                for scale in np.linspace(0.2, 1.0, 20)[::-1]:
+		            # resize the image according to the scale, and keep track
+		            # of the ratio of the resizing
+                    resized = imutils.resize(img_gray, width = int(img_gray.shape[1] * scale))
+                    r = img_gray.shape[1] / float(resized.shape[1])
+
+		            # if the resized image is smaller than the template, then break
+		            # from the loop
+                    if resized.shape[0] < h or resized.shape[1] < w:
+                        break
+
+                    # detect edges in the resized, grayscale image and apply template
+		            # matching to find the template in the image
+                    res = cv2.matchTemplate(resized, tar, cv2.TM_CCOEFF_NORMED)
+                    loc = np.where(res >= threshold)
+                    if loc[0].size != 0:
+                        for pt in zip(*loc[::-1]):
+                            (startX, startY) = (int(pt[0] * r), int(pt[1] * r))
+                            (endX, endY) = (int((pt[0] + w) * r), int((pt[1] + h) * r))
+                            img_crop = img_blank[startY:endY,startX:endX].copy()
+                            hc, wc = img_crop.shape[:2]
+                            countzero = hc*wc - cv2.countNonZero(img_crop)
+                            if countzero *1.0 / (hc*wc) <= 0.7:
+                                # if new area is less than 70% of overlap with other proposed masked area
+                                cv2.rectangle(img_blank,(startX, startY), (endX, endY), (0,0,0), -1)
+
+                                cv2.rectangle(img_gray,(startX, startY), (endX, endY), (0,0,255), 2)
+
+                                with open(txtfileloc, "a") as f:
+                                    txtline = tar_name
+                                    txtline += "\t" + str(startX) + "\t" + str(startY) + "\t" + str(endX) + "\t" 
+                                    txtline += str(startY) + "\t" + str(endX)+ "\t" + str(endY)+ "\t" + str(startX)+ "\t" + str(endY)
+                                    txtline += "\n"
+                                    f.writelines(txtline)
+                                    f.close()
+        cv2.imwrite(os.path.join(output_path, os.path.basename(img_fn)), img_gray)
+        
+
+"""
+	            # unpack the bookkeeping variable and compute the (x, y) coordinates
+	            # of the bounding box based on the resized ratio
+	            (_, maxLoc, r) = found
+	            (startX, startY) = (int(maxLoc[0] * r), int(maxLoc[1] * r))
+	            (endX, endY) = (int((maxLoc[0] + tW) * r), int((maxLoc[1] + tH) * r))
+
+                            w, h = tar.shape[::-1]
+                            res = cv2.matchTemplate(img_gray,tar,cv2.TM_CCOEFF_NORMED)
+                            loc = np.where( res >= threshold)
+                            for pt in zip(*loc[::-1]):
+                                cv2.rectangle(img_gray, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
+                    plt.imshow(img_gray, 'gray'),plt.show()
+
+
+
 
 cwd = os.getcwd()
 print(cwd)
-img2 = cv2.imread('simple-5.png', 0)
-img1 = cv2.imread('valve_example.jpg', 0)
+
+
+
+
+img2 = cv2.imread('simple-3.png', 0)
+img1 = cv2.imread('reducer_example.jpg', 0)
+
+#img1 = cv2.transpose(img1)
+img1 = cv2.flip(img1,1)
+
+
+
+#print(np.shape(img2))
+
+#img_gray = cv2.cvtColor(img2 ,  cv2.COLOR_BGR2GRAY)
+img_gray = img2.copy()
+
+
+w, h = img1.shape[::-1]
+
+res = cv2.matchTemplate(img_gray,img1,cv2.TM_CCOEFF_NORMED)
+threshold = 0.8
+loc = np.where( res >= threshold)
+for pt in zip(*loc[::-1]):
+    cv2.rectangle(img2, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
+
+plt.imshow(img2, 'gray'),plt.show()
 
 
 
 
 
+
+MIN_MATCH_COUNT = 3
 sift = cv2.xfeatures2d.SIFT_create()
 kp1, des1 = sift.detectAndCompute(img1, None)
 kp2, des2 = sift.detectAndCompute(img2, None)
@@ -62,7 +192,6 @@ plt.imshow(img3, 'gray'),plt.show()
 
 
 
-"""
 # Initiate SIFT detector
 orb = cv2.ORB_create(nfeatures=200)
 
@@ -86,8 +215,6 @@ img4  = cv2.drawMatches(img1,kp1,img2,kp2,matches[:10],None,flags=cv2.DrawMatche
 
 plt.imshow(img4),plt.show()
 
-
-"""
 
 
 
@@ -126,3 +253,6 @@ draw_params = dict(matchColor = (0,255,0),
 img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,matches,None,**draw_params)
 
 plt.imshow(img3,),plt.show()
+
+
+"""
